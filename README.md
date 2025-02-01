@@ -1,4 +1,4 @@
-# LoRA-Ensemble: Efficient Uncertainty Modelling for Self-attention Networks
+# Multi-GPUs implementation for LoRA-Ensemble: Efficient Uncertainty Modelling for Self-attention Networks
 Michelle Halbheer, Dominik J. Mühlematter, Alexander Becker, Dominik Narnhofer, Helge Aasen, Konrad Schindler and Mehmet Ozgur Turkoglu - 2024
 
 [[Paper on ArXiv]](https://arxiv.org/abs/2405.14438)
