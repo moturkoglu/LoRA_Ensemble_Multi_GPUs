@@ -168,7 +168,6 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                     data_train = data_train.to(local_rank, non_blocking=True)
                     target = target.to(local_rank, non_blocking=True)
 
-                    print(target.shape)
 
                     with torch.autocast(device_type="cuda", dtype=torch.float16,
                                         enabled=settings["training_settings"]["use_amp"]):
@@ -180,7 +179,6 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                         # so we do: output = output.contiguous().view(output.shape[1] * n_members, -1)
                         output = output.contiguous().view(output.shape[1] * n_members, -1)
 
-                        print(output.shape)
 
                         # Repeat the target for each member
                         target = target.repeat(n_members)
