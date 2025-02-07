@@ -30,7 +30,12 @@ import const
 
 
 ### DDP INITIALIZATION (only once at the start) ###
-dist.init_process_group(backend="nccl")
+operating_system = "linux"
+#operating_system = "windows"
+if operating_system == "linux":
+    dist.init_process_group(backend="nccl")
+elif operating_system == "windows":
+    dist.init_process_group(backend="gloo")  
 local_rank = dist.get_rank()
 world_size = dist.get_world_size()
 torch.cuda.set_device(local_rank)
@@ -42,6 +47,11 @@ __email__ = ["hamich@ethz.ch", "dmuehelema@ethz.ch"]
 __credits__ = ["Michelle Halbheer", "Dominik Mühlematter"]
 __version__ = "0.0.1"
 __status__ = "Development"
+
+def adjust_learning_rate(optimizer, epoch, base_lr, lr_decay, epoch_decay):
+    """Decays the learning rate"""
+    lr = base_lr * (lr_decay ** (epoch // epoch_decay))
+    optimizer.param_groups[0]["lr"] = lr
 
 
 def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DEFAULT) -> None:
@@ -215,6 +225,9 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                     pbar.set_postfix(train_params)
                     pbar.update()
 
+                    #if batch_idx == 10:
+                    #    break
+
                     # maximum number of steps reached
                     if gradient_updates == settings["training_settings"]["max_steps"]:
                         finish_training = True
@@ -232,7 +245,8 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
 
             # update LR each epoch if schedule name is epoch_step
             if settings["training_settings"]["lr_schedule_name"] == "epoch_step":
-                lr_schedule.step()
+                adjust_learning_rate(optimizer, epoch + 1, settings["training_settings"]["learning_rate"], 
+                                     settings["training_settings"]["lr_decay"], settings["training_settings"]["epoch_decay"])
 
         # ----------------------------------------------------------------
         # 5) VALIDATION
@@ -328,6 +342,9 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                         if batch_idx == (settings["data_settings"]["subset_evaluation_iterations"] - 1):
                             break
 
+                    #if batch_idx == 10:
+                    #    break
+
                 # ECE
                 if DEVICE == 'cuda':
                     ece_criterion = _ECELoss().cuda()
@@ -344,6 +361,7 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                     logits_prediction, torch.tensor(labels).to(local_rank),
                     plot=plot_ece, file_name=file_name
                 )
+
         else:
             # If no eval, set dummy placeholders
             val_loss = 0
@@ -426,6 +444,17 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                     const.MODEL_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
                     torch.save(model_state_dict, save_path)
                     print(f"Model saved to {save_path} with accuracy {accuracy} after {gradient_updates} iterations")
+            
+            if "checkpoints" in settings["training_settings"].keys() and settings["training_settings"]["checkpoints"] is True and local_rank == 0:
+                if (epoch + 1) % settings["training_settings"]["checkpoint_interval"] == 0:
+                    model_name = settings["data_settings"]["result_file_name"]
+                    save_name = f"{model_name}_epoch{epoch + 1}.pt"
+                    save_path = const.MODEL_STORAGE_DIR.joinpath(save_name)
+                    model_state_dict = settings["model_settings"]["model_params"]
+                    const.MODEL_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+                    torch.save(model_state_dict, save_path)
+                    print(f"Model saved to {save_path} with accuracy {accuracy} after {gradient_updates} iterations")
+                    
 
             # snapshot logic (similarly only rank 0 saves)
             if ("mode" in settings["training_settings"]
