@@ -24,7 +24,7 @@ from model_training_evaluation.scheduler import (Cosine_Schedule,
 import const
 from data.utils_data import download_CIFAR10, calculate_pixel_mean_and_variance, download_CIFAR100, \
     class_weights_inverse_num_of_samples, class_weights_effective_num_of_samples
-from data.project_data_loader import CIFAR10, CIFAR100, HAM10000, INat2017
+from data.project_data_loader import CIFAR10, CIFAR100, HAM10000
 from data.data_augmentation import create_data_augmentation
 from data.audio_datalaoder import AudiosetDataset
 from models.vision_transformer import VisionTransformer
