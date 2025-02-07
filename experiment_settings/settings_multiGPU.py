@@ -49,7 +49,7 @@ cluster = True
 if cluster:
     iNat2017_dir = "/cluster/work/igp_psr/data/LoRA_Ensemble/INat2017/"
     iNat2017_train_ann = "/cluster/work/igp_psr/data/LoRA_Ensemble/INat2017/train2017.json"
-    iNat2017_val_ann = "s/cluster/work/igp_psr/data/LoRA_Ensemble/INat2017/val2017.json"
+    iNat2017_val_ann = "/cluster/work/igp_psr/data/LoRA_Ensemble/INat2017/val2017.json"
 else:
     iNat2017_dir = "F:/iNat2017/2017/"
     iNat2017_train_ann = "F:/iNat2017/2017/train2017.json"
