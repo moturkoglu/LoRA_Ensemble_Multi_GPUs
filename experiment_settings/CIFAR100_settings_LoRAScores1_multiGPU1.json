@@ -10,15 +10,15 @@
     "chunk_size": 1   
   },
   "data_settings": {
-    "data_set": "CIFAR10",
-    "num_classes": 10,
-    "channel_mean": [125.3069, 122.9501, 113.8660],
-    "channel_std": [62.9933, 62.0886, 66.7050],
+    "data_set": "CIFAR100",
+    "num_classes": 100,
+    "channel_mean": [129.3039, 124.0699, 112.4336],
+    "channel_std": [68.1702, 65.3917, 70.4181],
     "num_workers": 2,
     "original_size": [32,32],
     "input_size": [224,224],
-    "training_files": ["data_batch_1", "data_batch_2", "data_batch_3", "data_batch_4", "data_batch_5"],
-    "evaluation_files": ["test_batch"],
+    "training_files": ["train"],
+    "evaluation_files": ["test"],
     "shuffle": false,
     "tensorboard": true
   },
