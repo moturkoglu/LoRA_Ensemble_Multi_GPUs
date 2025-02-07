@@ -30,7 +30,7 @@
     "steps_lr_warmup": 0,
     "loss": "cross_entropy",
     "class_weights": "uniform",
-    "optimizer": "RMSprop",
+    "optimizer": "SGD",
     "learning_rate": 0.0045,   
     "lr_decay": 0.94,
     "epoch_decay": 4,
