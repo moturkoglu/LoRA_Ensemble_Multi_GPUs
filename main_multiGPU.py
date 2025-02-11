@@ -70,13 +70,35 @@ if __name__ == "__main__":
         print("3. Number of the ensemble members.")
         print("")
         print("Example: python main.py CIFAR10_settings_experiment1.json LoRA-Former 2")
-        # python main.py ESC50_test_dominik_experiment1.json AST_Former 1
-        # python main.py ESC50_settingsPaper_experiment1.json Explicit_AST 1 
-        # python main.py ESC50_settingsPaperLoRA_experiment1.json AST_Former 1
-        # python main.py CIFAR100_settings_experiment12_copy.json LoRA_Former 2
-        # python main.py ESC50_settings_MCDropout1.json ASTMCDropout 2         
-        # python -m torch.distributed.run --nproc_per_node=1 main_multiGPU.py CIFAR100_settings_LoRAScores1_multiGPU1.json LoRA_Former 1
-        # python -m torch.distributed.run --nproc_per_node=1 main_multiGPU.py INat2017_settings_LoRAmultiGPUtest1.json LoRA_Former 1      
+
+        # Running multi-GPU on cluster using shell scripts (Linux)
+        # 1. Change variable "cluster" in settings_multiGPU.py to True if not already
+        # 2. Change variable "cluster" in const.py to True if not already
+        # 3. Change path for saving model on cluster in const.py, otherwise models are saved in scratch
+        # 4. Change --nproc_per_node=4 to the number of GPUs to use in the file batch_script.slurm
+        # 5. Change time=48 and mem=20000 to the desired time and memory in the file run_slurm_jobs.sh for the desired number of members
+        # 6. Change --gpus=4 in the file run_slurm_jobs.sh to the number of GPUs to use
+        # bash run_slurm_jobs.sh -t 'Deep_Ensemble' -s 'INat2017_settings_explicitlargerLR' -e '1,2' -n '1,8'
+        # where -t 'Deep_Ensemble' is the type of ensemble model
+        # where -s 'INat2017_settings_explicitlargerLR' is the name of the json file containing the experiment settings without the experiment number
+        # where -e '1,2' is the number of experiments to run
+        # where -n '1,8' is the number of ensemble members to train
+        # the example above will start the settings INat2017_settings_explicitlargerLR1.json and INat2017_settings_explicitlargerLR2.json with 
+        # 1 and 8 ensemble members respectively. In total 4 jobs will be started
+
+        # Running multi-GPU on euler (Linux)
+        # 1. Change variable "cluster" in settings_multiGPU.py to True if not already
+        # 2. Change variable "cluster" in const.py to True if not already
+        # 3. Change path for saving model on cluster in const.py, otherwise models are saved in scratch
+        # torchrun --nproc_per_node=4 --master_port=12355 main_multiGPU.py CIFAR10/final/CIFAR10_settings_explicitScores1.json Deep_Ensemble 4 
+        # where --nproc_per_node=4 is the number of GPUs to use
+
+        # Running multi-GPU local on Windows
+        # 1. Change variable "cluster" in settings_multiGPU.py to False
+        # 2. Change variable "cluster" in const.py to False
+        # 3. Change local path to INat dataset if needed in settings_multiGPU.py
         # python -m torch.distributed.run --nproc_per_node=1 main_multiGPU.py INat2017_settings_ExplicitmultiGPUtest1.json Deep_Ensemble 1
+        # where --nproc_per_node=1 is the number of GPUs to use
+
 
 
