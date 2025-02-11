@@ -23,7 +23,7 @@ from model_training_evaluation.scheduler import (Cosine_Schedule,
 import const
 from data.utils_data import download_CIFAR10, calculate_pixel_mean_and_variance, download_CIFAR100, \
     class_weights_inverse_num_of_samples, class_weights_effective_num_of_samples
-from data.project_data_loader import CIFAR10, CIFAR100, HAM10000
+from data.project_data_loader import CIFAR10, CIFAR100, HAM10000, IGNAT_Loader
 from data.data_augmentation import create_data_augmentation
 from data.audio_datalaoder import AudiosetDataset
 from models.vision_transformer import VisionTransformer
@@ -42,6 +42,19 @@ __email__ = ["hamich@ethz.ch", "dmuehelema@ethz.ch"]
 __credits__ = ["Michelle Halbheer", "Dominik Mühlematter"]
 __version__ = "0.0.1"
 __status__ = "Development"
+
+cluster = True
+#iNat2017_dir = "F:/iNat2017/2017/"
+#iNat2017_dir = "/cluster/scratch/dmuehlema/iNat2017/"
+if cluster:
+    iNat2017_dir = "/cluster/work/igp_psr/data/LoRA_Ensemble/INat2017/"
+    iNat2017_train_ann = "/cluster/work/igp_psr/data/LoRA_Ensemble/INat2017/train2017.json"
+    iNat2017_val_ann = "/cluster/work/igp_psr/data/LoRA_Ensemble/INat2017/val2017.json"
+else:
+    iNat2017_dir = "F:/iNat2017/2017/"
+    iNat2017_train_ann = "F:/iNat2017/2017/train2017.json"
+    iNat2017_val_ann = "F:/iNat2017/2017/val2017.json"
+
 
 
 ### FUNCTIONS ###
@@ -133,16 +146,37 @@ def get_dataloader(data: dict, train: bool, transform: transforms.Compose) -> No
 
         dataset = HAM10000(files, sub_dir, transform=transform)
 
+    elif data["data_settings"]["data_set"] == "INat2017": 
+        if train:
+            dataset = IGNAT_Loader(iNat2017_dir, iNat2017_train_ann,
+                    transforms.Compose([
+                    transforms.RandomResizedCrop(224),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std =[0.229, 0.224, 0.225]),  # Apply normalization
+            ]))
+
+        else:
+            dataset = IGNAT_Loader(iNat2017_dir, iNat2017_val_ann,
+                    transform = transforms.Compose([
+                    transforms.Resize(int(224 / 0.875)),  # Resize image
+                    transforms.CenterCrop(224),  # Crop center
+                    transforms.ToTensor(),  # Convert to tensor
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std =[0.229, 0.224, 0.225]),  # Apply normalization
+                ]))
+
     # Case of other datasets
     else:
         raise ValueError("Dataset not supported or recognized")
 
     # get training dataloader and add it to the data dictionary
     if train:
-        sampler = DistributedSampler(dataset)
+        sampler = DistributedSampler(dataset, shuffle=data["data_settings"]["shuffle"])
         data["training_settings"]["training_dataloader"] = (
             DataLoader(dataset, batch_size=data["training_settings"]["training_batch_size"],
-                       shuffle=data["data_settings"]["shuffle"], num_workers=data["data_settings"]["num_workers"], sampler=sampler))
+                       num_workers=data["data_settings"]["num_workers"], sampler=sampler))
 
         data["training_settings"]["training_dataset"] = dataset
 
@@ -152,7 +186,7 @@ def get_dataloader(data: dict, train: bool, transform: transforms.Compose) -> No
         sampler = DistributedSampler(dataset, shuffle=False)
         data["evaluation_settings"]["evaluation_dataloader"] = (
             DataLoader(dataset, batch_size=data["evaluation_settings"]["evaluation_batch_size"],
-                       shuffle=False, num_workers=data["data_settings"]["num_workers"], sampler=sampler))
+                       num_workers=data["data_settings"]["num_workers"], sampler=sampler))
         
         data["evaluation_settings"]["evaluation_dataset"] = dataset
 
@@ -258,6 +292,14 @@ def get_optimizer(data: dict) -> None:
         weight_decay = data["training_settings"]["weight_decay"]
         data["training_settings"]["optimizer"] = torch.optim.Adam([torch.tensor([])], lr=lr, betas=betas,
                                                                   weight_decay=weight_decay)
+        
+    elif data["training_settings"]["optimizer"] == "RMSprop":
+        # Initialize the optimizer and specify the settings
+        lr = data["training_settings"]["learning_rate"]
+        mom = data["training_settings"]["SGD_momentum"]
+        weight_decay = data["training_settings"]["weight_decay"]
+        data["training_settings"]["optimizer"] = torch.optim.RMSprop([torch.tensor([])], lr=lr, momentum=mom,
+                                                                    weight_decay=weight_decay)
     # If anything else is given as optimizer
     else:
         raise ValueError("Optimizer not implemented or recognized")
@@ -306,9 +348,6 @@ def get_learning_rate_schedule(data: dict) -> None:
                                                         data["training_settings"]["steps_lr_warmup"])
         data["training_settings"]["lr_schedule_name"] = "cyclic_cosine"
     elif data["training_settings"]["lr_schedule"] == "epoch_step":
-        data["training_settings"]["lr_schedule"] = torch.optim.lr_scheduler.MultiStepLR(data["training_settings"]["optimizer"],
-                                                                                  list(range(data["training_settings"]["first_epoch_step"], 1000, 1)),
-                                                                                  gamma=data["training_settings"]["epoch_step_gamma"])
         data["training_settings"]["lr_schedule_name"] = "epoch_step"
     else:
         raise ValueError("Learning rate schedule not implemented or recognized")

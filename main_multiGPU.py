@@ -74,4 +74,9 @@ if __name__ == "__main__":
         # python main.py ESC50_settingsPaper_experiment1.json Explicit_AST 1 
         # python main.py ESC50_settingsPaperLoRA_experiment1.json AST_Former 1
         # python main.py CIFAR100_settings_experiment12_copy.json LoRA_Former 2
-        # python main.py ESC50_settings_MCDropout1.json ASTMCDropout 2
+        # python main.py ESC50_settings_MCDropout1.json ASTMCDropout 2         
+        # python -m torch.distributed.run --nproc_per_node=1 main_multiGPU.py CIFAR100_settings_LoRAScores1_multiGPU1.json LoRA_Former 1
+        # python -m torch.distributed.run --nproc_per_node=1 main_multiGPU.py INat2017_settings_LoRAmultiGPUtest1.json LoRA_Former 1      
+        # python -m torch.distributed.run --nproc_per_node=1 main_multiGPU.py INat2017_settings_ExplicitmultiGPUtest1.json Deep_Ensemble 1
+
+

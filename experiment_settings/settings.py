@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import numpy as np
 
 # Custom imports
 from model_training_evaluation.scheduler import (Cosine_Schedule,
@@ -43,6 +44,9 @@ __credits__ = ["Michelle Halbheer", "Dominik Mühlematter"]
 __version__ = "0.0.1"
 __status__ = "Development"
 
+iNat2017_dir = "F:/iNat2017/2017/"
+#iNat2017_dir = "/cluster/scratch/dmuehlema/iNat2017/"
+#iNat2017_dir = "/cluster/work/igp_psr/data/LoRA_Ensemble/INat2017/"
 
 ### FUNCTIONS ###
 def get_dataloader(data: dict, train: bool, transform: transforms.Compose) -> None:
@@ -76,6 +80,34 @@ def get_dataloader(data: dict, train: bool, transform: transforms.Compose) -> No
                                                               .format(data["training_settings"]["cross_validation_fold"])),
                                       label_csv=const.DATA_DIR.joinpath('datasets/ESC50/esc_class_labels_indices.csv'),
                                       audio_conf=val_audio_conf)
+            
+    elif data["data_settings"]["data_set"] == "ImageNetLT":
+        # TODO: Implement ImageNetLR dataloader
+        pass
+            
+    elif data["data_settings"]["data_set"] == "INat2017":
+        # download dataset
+        #download_iNat2017(path=sub_dir)
+
+
+        # get path
+        
+
+        if train:
+            #annotations_file = iNat2017_dir + 'train2017.json'
+            split = 'train'
+        else:
+            #annotations_file = iNat2017_dir + 'val2017.json'
+            split = 'val'
+        
+        #category_name_to_id = iNat2017_dir + 'category_name_to_id.json'
+
+        #dataset = INat2017Dataset(annotations_file=annotations_file, img_dir=iNat2017_dir, category_name_to_id=category_name_to_id, transform=transform)
+
+        dataset = INat2017(root = iNat2017_dir, split=split, transform=transform, target_transform=None, download=False)
+
+
+
 
     elif data["data_settings"]["data_set"] == "CIFAR10":
 
@@ -215,6 +247,11 @@ def get_data_augmentation(data: dict, train) -> None:
             data["data_settings"]["input_size"], False, False, standardize, mean_pixel, std_pixel)
 
 
+
+
+
+
+
 def get_optimizer(data: dict) -> None:
     """
     Function to get the optimizer for the training. The optimizer is added to the settings dictionary.
@@ -251,7 +288,13 @@ def get_optimizer(data: dict) -> None:
         weight_decay = data["training_settings"]["weight_decay"]
         data["training_settings"]["optimizer"] = torch.optim.Adam([torch.tensor([])], lr=lr, betas=betas,
                                                                   weight_decay=weight_decay)
-    # If anything else is given as optimizer
+    elif data["training_settings"]["optimizer"] == "RMSprop":
+        # Initialize the optimizer and specify the settings
+        lr = data["training_settings"]["learning_rate"]
+        mom = data["training_settings"]["SGD_momentum"]
+        weight_decay = data["training_settings"]["weight_decay"]
+        data["training_settings"]["optimizer"] = torch.optim.RMSprop([torch.tensor([])], lr=lr, momentum=mom,
+                                                                    weight_decay=weight_decay)
     else:
         raise ValueError("Optimizer not implemented or recognized")
 
@@ -317,6 +360,8 @@ def get_loss(data: dict) -> None:
         Dictionary containing the settings.
     """
 
+
+
     # If the class weights are uniform
     if data["training_settings"]["class_weights"] == "uniform":
         data["training_settings"]["class_weights"] = torch.full((data["data_settings"]["num_classes"],),
@@ -362,6 +407,14 @@ def get_loss(data: dict) -> None:
         data["training_settings"]["class_weights"] = torch.tensor(
             class_weights_effective_num_of_samples(data["data_settings"]["num_classes"], samples_per_class,
                                                    beta=data["training_settings"]["ENS_beta"])).float()
+        
+    elif data["training_settings"]["class_weights"] == "INat2017":
+
+        class_weights_tensor = np.load(iNat2017_dir + 'INat2017_inverse_square_root.npy').tolist()
+        # convert to tensor
+        class_weights_tensor = torch.tensor(class_weights_tensor)
+        # Move to GPU if necessary  
+        data["training_settings"]["class_weights"] = class_weights_tensor.to(DEVICE)
 
     else:
         data["training_settings"]["class_weights"] = torch.tensor(data["training_settings"]["class_weights"])

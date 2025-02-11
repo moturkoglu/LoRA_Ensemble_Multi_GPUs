@@ -96,7 +96,7 @@ for i in "${experiments[@]}"; do
     wrap="batch_script.slurm $settings$i.json $type $j"
     job_name="${type:0:1}""m"$j"s"$i
 
-    slurm_call="sbatch -J "$job_name" --time=1-"$time" --mem-per-cpu=32g --gpus=2 --gres=gpumem:"$gpu_mem"g --output=$output $wrap"
+    slurm_call="sbatch -J "$job_name" --time=1-"$time" --mem-per-cpu=32g --gpus=4 --gres=gpumem:"$gpu_mem"g --output=$output $wrap"
 
     # Run job
     echo "Running job with settings $settings$i and type $type with $j members"
