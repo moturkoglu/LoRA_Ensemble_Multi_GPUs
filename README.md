@@ -1,9 +1,6 @@
 # Multi-GPUs implementation for LoRA-Ensemble: Efficient Uncertainty Modelling for Self-attention Networks
 Michelle Halbheer, Dominik J. Mühlematter, Alexander Becker, Dominik Narnhofer, Helge Aasen, Konrad Schindler and Mehmet Ozgur Turkoglu - 2024
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 --master_port=12355 main_multiGPU.py CIFAR10_settings_LoRAScores1_multiGPU.json LoRA_Former 16     
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 --master_port=12355 main_multiGPU.py CIFAR10/final/CIFAR10_settings_explicitScores1.json Deep_Ensemble 1
-
 
 [[Paper on ArXiv]](https://arxiv.org/abs/2405.14438)
 ## Abstract
@@ -86,6 +83,18 @@ Example: Evaluate a LoRA-Ensemble model with 4 members, based on CIFAR100_settin
 
 ```
 python main.py CIFAR100_settings_LoRA1.json LoRA_Former 4 LoRA_Former_ViT_base_32_4_members_CIFAR100_settings_LoRA1
+```
+
+Example: Training a LoRA-Ensemble model with 16 members, based on CIFAR10_settings_LoRAScores1_multiGPU.json and 4 GPUs
+
+```
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 --master_port=12355 main_multiGPU.py CIFAR10_settings_LoRAScores1_multiGPU.json LoRA_Former 16     
+```
+
+Example: Training an Explicit Ensemble model with 4 members, based on CIFAR10_settings_explicitScores1.json and 4 GPUs
+
+```
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 --master_port=12355 main_multiGPU.py CIFAR10/final/CIFAR10_settings_explicitScores1.json Deep_Ensemble 4
 ```
 
  
