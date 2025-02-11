@@ -8,7 +8,7 @@ tqdm
 pandas
 h5py
 opencv-python
-numpy<2.0
+numpy==1.26.4
 wget
 timm==0.4.5
 torchaudio
