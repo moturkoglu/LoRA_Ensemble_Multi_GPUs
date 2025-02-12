@@ -31,7 +31,7 @@
     "loss": "cross_entropy",
     "class_weights": "uniform",
     "optimizer": "RMSprop",
-    "learning_rate": 0.03,   
+    "learning_rate": 0.005,   
     "lr_decay": 0.94,
     "epoch_decay": 4,
     "SGD_momentum": 0.9,
