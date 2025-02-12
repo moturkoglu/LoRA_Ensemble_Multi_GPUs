@@ -408,6 +408,14 @@ def get_loss(data: dict) -> None:
         data["training_settings"]["class_weights"] = torch.tensor(
             class_weights_effective_num_of_samples(data["data_settings"]["num_classes"], samples_per_class,
                                                    beta=data["training_settings"]["ENS_beta"])).float()
+    
+    elif data["training_settings"]["class_weights"] == "INat2017":
+
+        class_weights_tensor = np.load(iNat2017_dir + 'INat2017_inverse_square_root.npy').tolist()
+        # convert to tensor
+        class_weights_tensor = torch.tensor(class_weights_tensor)
+        # Move to GPU if necessary  
+        data["training_settings"]["class_weights"] = class_weights_tensor.to(DEVICE)
 
     else:
         data["training_settings"]["class_weights"] = torch.tensor(data["training_settings"]["class_weights"])
