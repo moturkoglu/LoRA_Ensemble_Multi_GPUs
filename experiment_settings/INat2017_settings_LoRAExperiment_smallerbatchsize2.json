@@ -43,7 +43,7 @@
     "training_batch_size": 8,
     "training_augmentation": ["INat2017"],
     "early_stopping": false,
-    "use_amp": true,
+    "use_amp": false,
     "checkpoints": true,
     "checkpoint_interval": 4
   },
