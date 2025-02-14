@@ -4,7 +4,7 @@
     "ViT_patch_size": 32
   },
   "LoRA_settings": {
-    "rank": 8,
+    "rank": 16,
     "weight_init": "xavier_uniform",
     "xavier_gain": 10,
     "chunk_size": 1   
