@@ -69,13 +69,13 @@ for i in "${experiments[@]}"; do
   # Set time and gpu memory based on number of members
   for j in "${num_members[@]}"; do
     if [ "$j" == 1 ]; then
-      time=240
+      time=120
       gpu_mem=20
     elif [ "$j" == 2 ]; then
       time=10
       gpu_mem=20
     elif [ "$j" == 4 ]; then
-      time=240
+      time=120
       gpu_mem=20
     elif [ "$j" == 8 ]; then
       time=336
