@@ -247,13 +247,13 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
             train_time_list.append(epoch_train_time)
 
             # update LR each epoch if schedule name is epoch_step
-            #if settings["training_settings"]["lr_schedule_name"] == "epoch_step":
-            #    lr_schedule.step()
+            if settings["training_settings"]["lr_schedule_name"] == "epoch_step":
+                lr_schedule.step()
 
             # update LR each epoch if schedule name is epoch_step
-            if settings["training_settings"]["lr_schedule_name"] == "epoch_step":
-                adjust_learning_rate(optimizer, epoch + 1, settings["training_settings"]["learning_rate"], 
-                                     settings["training_settings"]["lr_decay"], settings["training_settings"]["epoch_decay"])
+            #if settings["training_settings"]["lr_schedule_name"] == "epoch_step":
+            #    adjust_learning_rate(optimizer, epoch + 1, settings["training_settings"]["learning_rate"], 
+            #                         settings["training_settings"]["lr_decay"], settings["training_settings"]["epoch_decay"])
 
         # ----------------------------------------------------------------
         # 5) VALIDATION
