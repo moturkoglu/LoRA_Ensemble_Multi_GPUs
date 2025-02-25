@@ -43,6 +43,10 @@ __credits__ = ["Michelle Halbheer", "Dominik Mühlematter"]
 __version__ = "0.0.1"
 __status__ = "Development"
 
+def adjust_learning_rate(optimizer, epoch, base_lr, lr_decay, epoch_decay):
+    """Decays the learning rate"""
+    lr = base_lr * (lr_decay ** (epoch // epoch_decay))
+    optimizer.param_groups[0]["lr"] = lr
 
 def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DEFAULT) -> None:
     """
@@ -243,8 +247,13 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
             train_time_list.append(epoch_train_time)
 
             # update LR each epoch if schedule name is epoch_step
+            #if settings["training_settings"]["lr_schedule_name"] == "epoch_step":
+            #    lr_schedule.step()
+
+            # update LR each epoch if schedule name is epoch_step
             if settings["training_settings"]["lr_schedule_name"] == "epoch_step":
-                lr_schedule.step()
+                adjust_learning_rate(optimizer, epoch + 1, settings["training_settings"]["learning_rate"], 
+                                     settings["training_settings"]["lr_decay"], settings["training_settings"]["epoch_decay"])
 
         # ----------------------------------------------------------------
         # 5) VALIDATION
