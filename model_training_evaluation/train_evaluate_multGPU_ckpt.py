@@ -96,11 +96,11 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
         # Restore AMP scaler state if available
         if "scaler_state_dict" in checkpoint:
             scaler.load_state_dict(checkpoint["scaler_state_dict"])
-        # Optionally, restore RNG states if saved
-        if "rng_state" in checkpoint:
-            torch.set_rng_state(checkpoint["rng_state"])
-            if torch.cuda.is_available():
-                torch.cuda.set_rng_state_all(checkpoint["cuda_rng_state"])
+        # Restore RNG states if saved (commented out)
+        # if "rng_state" in checkpoint:
+        #     torch.set_rng_state(checkpoint["rng_state"])
+        #     if torch.cuda.is_available() and "cuda_rng_state" in checkpoint:
+        #         torch.cuda.set_rng_state_all(checkpoint["cuda_rng_state"])
         start_epoch = checkpoint["epoch"] + 1
         gradient_updates = checkpoint["gradient_updates"]
         print(f"Resuming training from epoch {start_epoch} with {gradient_updates} gradient updates")
@@ -423,10 +423,10 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                     "lr_schedule_state_dict": lr_schedule.state_dict(),
                     "scaler_state_dict": scaler.state_dict(),  # Save AMP scaler state
                     "gradient_updates": gradient_updates,
-                    "rng_state": torch.get_rng_state(),
+                    # "rng_state": torch.get_rng_state().clone().detach(),  # RNG state saving commented out
                 }
-                if torch.cuda.is_available():
-                    checkpoint["cuda_rng_state"] = torch.cuda.get_rng_state_all()
+                # if torch.cuda.is_available():
+                #     checkpoint["cuda_rng_state"] = [state.clone().detach() for state in torch.cuda.get_rng_state_all()]
                 torch.save(checkpoint, checkpoint_path)
                 print(f"Checkpoint saved at epoch {epoch} to {checkpoint_path}")
             # ----- END MODIFIED -----
@@ -466,7 +466,7 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
         if "NLL_Brier_Score" in settings["evaluation_settings"] and settings["evaluation_settings"]["NLL_Brier_Score"]:
             header_string_NLL_Brier = ("train_loss,val_loss,accuracy,f1,precision,recall,ece,disagreement,"
                                        "distance_predicted_distributions,NLL,Brier\n")
-            val_len = val_data_loader.dataset.__len__() if val_data_loader.dataset.__len__() > 0 else 1
+            val_len = val_data_loader.dataset.__len__() if len(val_data_loader.dataset) > 0 else 1
             stats_string_NLL_Brier = (
                 f"{None},{val_loss / len(val_data_loader) if len(val_data_loader)>0 else val_loss},{accuracy},{f1},"
                 f"{precision},{recall},{ece[0] if isinstance(ece, tuple) else ece},{disagreement},"
