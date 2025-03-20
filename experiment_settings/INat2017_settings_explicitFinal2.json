@@ -21,7 +21,7 @@
     "training": true,
     "random_seed": 0,
     "max_steps": 289600, 
-    "steps_lr_warmup": 0,
+    "steps_lr_warmup": 10000,
     "loss": "cross_entropy",
     "class_weights": "uniform",
     "optimizer": "SGD",
@@ -43,7 +43,7 @@
   },
   "evaluation_settings": {
     "evaluation": true,
-    "evaluation_batch_size": 32,
+    "evaluation_batch_size": 256,
     "evalution_augmentation": ["INat2017"],
     "NLL_Brier_Score": true
   }

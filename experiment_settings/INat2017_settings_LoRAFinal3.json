@@ -3,6 +3,12 @@
     "ViT_config":  "base",
     "ViT_patch_size": 32
   },
+  "LoRA_settings": {
+    "rank": 64,
+    "weight_init": "xavier_uniform",
+    "xavier_gain": 1,
+    "chunk_size": 1   
+  },
   "data_settings": {
     "data_set": "INat2017",
     "num_classes": 5089,
@@ -20,7 +26,7 @@
     "max_epochs": 64,
     "training": true,
     "random_seed": 1206,
-    "max_steps": 289600, 
+    "max_steps": 289600,
     "steps_lr_warmup": 10000,
     "loss": "cross_entropy",
     "class_weights": "uniform",
