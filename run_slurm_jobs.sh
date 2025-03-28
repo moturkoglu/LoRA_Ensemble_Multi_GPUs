@@ -41,6 +41,15 @@ while :; do
                 exit 1
             fi
             ;;
+        -p|--path)  # Additional path for the wrap command
+            if [ "$2" ]; then
+                path=$2
+                shift
+            else
+                printf 'ERROR: "--path" requires a non-empty option argument.\n' >&2
+                exit 1
+            fi
+            ;;
         --)              # End of all options.
             shift
             break
@@ -75,7 +84,7 @@ for i in "${experiments[@]}"; do
       time=10
       gpu_mem=20
     elif [ "$j" == 4 ]; then
-      time=300
+      time=4
       gpu_mem=20
     elif [ "$j" == 8 ]; then
       time=336
@@ -94,6 +103,9 @@ for i in "${experiments[@]}"; do
     # Construct output and wrap
     output="storage/logs/"$type"_ViT_base_32_"$j"_members_"$settings$i".out"
     wrap="batch_script.slurm $settings$i.json $type $j"
+    if [ -n "$path" ]; then
+        wrap="$wrap  $path"
+    fi
     job_name="${type:0:1}""m"$j"s"$i
 
     slurm_call="sbatch -J "$job_name" --time=1-"$time" --mem-per-cpu=32g --gpus=4 --gres=gpumem:"$gpu_mem"g --output=$output $wrap"
