@@ -27,12 +27,14 @@ from data.utils_data import download_CIFAR10, calculate_pixel_mean_and_variance,
 from data.project_data_loader import CIFAR10, CIFAR100, HAM10000
 from data.data_augmentation import create_data_augmentation
 from data.audio_datalaoder import AudiosetDataset
+from data import sst2_dataloader
 from models.vision_transformer import VisionTransformer
 from models.AST import ASTLoRAEnsemble, ExplicitASTEnsemble, ASTModel
 from models.lora_ensemble import LoRAEnsemble
 from models.mc_dropout import MCDropoutEnsemble, ASTMCDropoutEnsemble
 from models.lora import Init_Weight
 from models.vision_transformer import VisionTransformerEnsemble, Init_Head
+from models.BERT import BertEnsemble, LoRABert, BertModel
 from utils_GPU import DEVICE
 import utils
 
@@ -164,6 +166,12 @@ def get_dataloader(data: dict, train: bool, transform: transforms.Compose) -> No
             files = data["data_settings"]["evaluation_files"]
 
         dataset = HAM10000(files, sub_dir, transform=transform)
+
+    elif data["data_settings"]["data_set"] == "SST2":
+        if train:
+            dataset = sst2_dataloader.train_dataset
+        else:
+            dataset = sst2_dataloader.test_dataset
 
     # Case of other datasets
     else:
@@ -804,6 +812,41 @@ def get_model(data: dict, ensemble_type: str) -> torch.nn.Module:
             n_params += param.numel()
 
         print(ensemble_model)
+
+    elif ensemble_type == "BertEnsemble":
+        pass
+
+    elif ensemble_type == "LoRABert":
+        init_settings = {}
+
+        if data["LoRA_settings"]["weight_init"] == "gaussian":
+            lora_init = Init_Weight.NORMAL
+            init_settings["std"] = data["LoRA_settings"]["gaussian_std"]
+            init_settings["mean"] = data["LoRA_settings"]["gaussian_mean"]
+
+        elif data["LoRA_settings"]["weight_init"] == "kaiming":
+            lora_init = Init_Weight.KAIMING_UNIFORM
+            init_settings["a_squared"] = data["LoRA_settings"]["kaiming_a_squared"]
+
+        elif data["LoRA_settings"]["weight_init"] == "xavier_uniform":
+            lora_init = Init_Weight.XAVIER_UNIFORM
+            init_settings["gain"] = data["LoRA_settings"]["xavier_gain"]
+
+        else:
+            lora_init = Init_Weight.DEFAULT
+            init_settings = None
+
+        if "chunk_size" not in data["LoRA_settings"]:
+            data["LoRA_settings"]["chunk_size"] = None
+
+        ensemble_model = LoRABert(
+            BertModel('bert-base-uncased').to(DEVICE),
+            data["LoRA_settings"]["rank"],
+            data["model_settings"]["nr_members"],
+            lora_init=lora_init,
+            init_settings=init_settings,
+            chunk_size=data["LoRA_settings"]["chunk_size"]
+        )
 
     else:
         raise ValueError("Ensemble type not implemented or recognized")

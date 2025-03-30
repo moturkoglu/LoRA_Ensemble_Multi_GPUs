@@ -1,5 +1,5 @@
-torch==2.2.1
-torchvision==0.17.1
+torch>=2.2.1
+torchvision>=0.17.1
 matplotlib
 tensorboard
 torchinfo
@@ -8,8 +8,10 @@ tqdm
 pandas
 h5py
 opencv-python
-numpy==1.26.4
+numpy>=1.26.4
 wget
-timm==0.4.5
+timm>=0.4.5
 torchaudio
 npy-append-array
+datasets
+transformers
