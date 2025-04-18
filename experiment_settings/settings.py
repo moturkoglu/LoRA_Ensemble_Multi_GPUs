@@ -244,15 +244,16 @@ def get_data_augmentation(data: dict, train) -> None:
             rotate_image = True
 
         # Create the data augmentation and add it to the data dictionary
-        data["training_settings"]["training_augmentation"] = create_data_augmentation(
-            data["data_settings"]["input_size"], flip_image, rotate_image, standardize, mean_pixel, std_pixel)
+        if data["data_settings"]["data_set"] != "SST2":
+            data["training_settings"]["training_augmentation"] = create_data_augmentation(
+                data["data_settings"]["input_size"], flip_image, rotate_image, standardize, mean_pixel, std_pixel)
 
     # Data augmentation for evaluation
     else:
-
-        # Create the data augmentation and add it to the data dictionary
-        data["evaluation_settings"]["evalution_augmentation"] = create_data_augmentation(
-            data["data_settings"]["input_size"], False, False, standardize, mean_pixel, std_pixel)
+        if data["data_settings"]["data_set"] != "SST2":
+            # Create the data augmentation and add it to the data dictionary
+            data["evaluation_settings"]["evalution_augmentation"] = create_data_augmentation(
+                data["data_settings"]["input_size"], False, False, standardize, mean_pixel, std_pixel)
 
 
 
@@ -847,6 +848,8 @@ def get_model(data: dict, ensemble_type: str) -> torch.nn.Module:
             init_settings=init_settings,
             chunk_size=data["LoRA_settings"]["chunk_size"]
         )
+
+        n_params = 0
 
     else:
         raise ValueError("Ensemble type not implemented or recognized")

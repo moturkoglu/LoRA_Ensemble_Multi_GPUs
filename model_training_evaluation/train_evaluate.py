@@ -97,29 +97,41 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
         # Get the start time of the epoch
         epoch_start_time = time.time()
 
+
         # If training is enabled
         if settings["training_settings"]["training"]:
             # iterate over training batches
             with tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Epoch", position=0) as pbar:
-                for batch_idx, (data_train, target) in pbar:
+                for batch_idx, target_params in pbar:
+
+                    if settings["data_settings"]["data_set"] != "SST2":
+                        data_train, target = target_params
+                    else:
+                        batch = target_params
                     train_params = {}
 
                     # set optimizers gradients to zero
                     optimizer.zero_grad()
 
                     # move training data and labels to device (GPU if possible)
-                    data_train = data_train.to(DEVICE)
+                    if settings["data_settings"]["data_set"] != "SST2":
+                        data_train = data_train.to(DEVICE)
+                    else:
+                        batch = {key: val.to(DEVICE) for key, val in target_params.items()}
 
                     # forward pass
                     with torch.autocast(device_type=DEVICE.type, dtype=torch.float16,
                                         enabled=settings["training_settings"]["use_amp"]):  # Automatic mixed precision
 
                         # Assert that the input does not contain NaN or infinite values
-                        assert not torch.isnan(data_train).any(), "Input contains NaN values"
-                        assert not torch.isinf(data_train).any(), "Input contains infinite values"
+                        # assert not torch.isnan(data_train).any(), "Input contains NaN values"
+                        # assert not torch.isinf(data_train).any(), "Input contains infinite values"
 
                         # Forward pass through the model
-                        output = model(data_train)
+                        if settings["data_settings"]["data_set"] != "SST2":
+                            output = model(data_train)
+                        else:
+                            output = model(batch)
 
                         # Assert that the output does not contain NaN or infinite values
                         assert not torch.isnan(output).any(), "Output contains NaN values"
@@ -202,12 +214,19 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                 brier_score_sum = 0
 
                 # iterate over validation data batches
-                for batch_idx, (data_val, target) in enumerate(val_data_loader):
+                for batch_idx, target_params in enumerate(val_data_loader):
+                    if settings["data_settings"]["data_set"] != "SST2":
+                        data_val, target = target_params
+                    else:
+                        batch = target_params
 
                     # print(f"Batch {batch_idx} of {len(val_data_loader)}")
 
                     # move validation data and labels to device (GPU if possible)
-                    data_val = data_val.to(DEVICE)
+                    if settings["data_settings"]["data_set"] != "SST2":
+                        data_val = data_val.to(DEVICE)
+                    else:
+                        batch = {key: val.to(DEVICE) for key, val in target_params.items()}
 
                     # forward pass
                     with torch.autocast(device_type=DEVICE.type, dtype=torch.float16,
@@ -222,7 +241,10 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                             # Get the inference start time
                             inference_start_time = time.time()
 
-                            output = model(data_val)
+                            if settings["data_settings"]["data_set"] != "SST2":
+                                output = model(data_val)
+                            else:
+                                output = model(batch)
 
                             # Get the inference end time
                             inference_end_time = time.time()

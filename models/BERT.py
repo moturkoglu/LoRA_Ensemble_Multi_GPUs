@@ -101,9 +101,9 @@ class LoRABert(nn.Module):
 
     def forward(self, inputs):
 
-        inputs = inputs.repeat_interleave(self.n_members, dim=0)
+        inputs = {key: values.repeat_interleave(self.n_members, dim=0) for key, values in inputs.items()}
 
-        out = self.bert_model(**inputs)
+        out = self.bert_model(inputs)
 
         out = out.view(out.shape[0] // self.n_members, self.n_members, -1)
         out = out.permute(1, 0, 2)
