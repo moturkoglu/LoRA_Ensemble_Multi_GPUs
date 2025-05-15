@@ -978,7 +978,7 @@ class EnsembleHead(nn.Module):
         self._layer_norm = layer_norm
         if not self._layer_norm:
             # If layer norm is not used, create the heads as a list of linear layers
-            self.heads = [nn.Linear(in_features, n_classes).to(DEVICE) for _ in range(n_members)]
+            self.heads = nn.ModuleList([nn.Linear(in_features, n_classes).to(DEVICE) for _ in range(n_members)])
         else:
             # If layer norm is used, create the heads as a list of layer norm and linear layers
             self.heads = [

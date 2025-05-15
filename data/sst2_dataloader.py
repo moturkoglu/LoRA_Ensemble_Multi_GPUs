@@ -1,16 +1,19 @@
 from datasets import load_dataset
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, BertTokenizer
 
 sst2_dataset = load_dataset('glue', 'sst2')
 
-tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+# tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 def tokenize(batch):
-    return tokenizer(batch['sentence'], padding="max_length", truncation=True)
+    return tokenizer(batch['sentence'], padding="max_length", truncation=True, max_length=128)
 
 sst2_tokenized = sst2_dataset.map(tokenize, batched=True)
 
 sst2_tokenized.set_format(type='torch', columns=['input_ids', 'attention_mask', 'label'])
+
+sst2_tokenized = sst2_tokenized.rename_column("label", "labels")
 
 train_dataset = sst2_tokenized['train']
 test_dataset = sst2_tokenized['test']

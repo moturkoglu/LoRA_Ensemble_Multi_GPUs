@@ -34,7 +34,11 @@ from models.lora_ensemble import LoRAEnsemble
 from models.mc_dropout import MCDropoutEnsemble, ASTMCDropoutEnsemble
 from models.lora import Init_Weight
 from models.vision_transformer import VisionTransformerEnsemble, Init_Head
-from models.BERT import BertEnsemble, LoRABert, BertModel
+from models.BERT import LoRABert
+from models.BERT import BertModel
+from transformers import BertForSequenceClassification
+
+# from models.BERT import BertEnsemble
 from utils_GPU import DEVICE
 import utils
 
@@ -244,15 +248,16 @@ def get_data_augmentation(data: dict, train) -> None:
             rotate_image = True
 
         # Create the data augmentation and add it to the data dictionary
-        data["training_settings"]["training_augmentation"] = create_data_augmentation(
-            data["data_settings"]["input_size"], flip_image, rotate_image, standardize, mean_pixel, std_pixel)
+        if data["data_settings"]["data_set"] != "SST2":
+            data["training_settings"]["training_augmentation"] = create_data_augmentation(
+                data["data_settings"]["input_size"], flip_image, rotate_image, standardize, mean_pixel, std_pixel)
 
     # Data augmentation for evaluation
     else:
-
-        # Create the data augmentation and add it to the data dictionary
-        data["evaluation_settings"]["evalution_augmentation"] = create_data_augmentation(
-            data["data_settings"]["input_size"], False, False, standardize, mean_pixel, std_pixel)
+        if data["data_settings"]["data_set"] != "SST2":
+            # Create the data augmentation and add it to the data dictionary
+            data["evaluation_settings"]["evalution_augmentation"] = create_data_augmentation(
+                data["data_settings"]["input_size"], False, False, standardize, mean_pixel, std_pixel)
 
 
 
@@ -840,7 +845,7 @@ def get_model(data: dict, ensemble_type: str) -> torch.nn.Module:
             data["LoRA_settings"]["chunk_size"] = None
 
         ensemble_model = LoRABert(
-            BertModel('bert-base-uncased').to(DEVICE),
+            BertModel('bert-base-uncased', data["data_settings"]["num_classes"]).to(DEVICE),
             data["LoRA_settings"]["rank"],
             data["model_settings"]["nr_members"],
             lora_init=lora_init,
@@ -848,17 +853,32 @@ def get_model(data: dict, ensemble_type: str) -> torch.nn.Module:
             chunk_size=data["LoRA_settings"]["chunk_size"]
         )
 
+        # Gather the model parameters that need training 
+        ensemble_params = ensemble_model.gather_params()
+
+        # Pass the model params
+        data["model_settings"]["model_params"] = ensemble_params
+
+        # Add parameters to the optimizer
+        data["training_settings"]["optimizer"].param_groups[0]["params"] = ensemble_params.values()
+
+        # Calculate number of parameters
+        n_params = 0
+        for param in ensemble_params.values():
+            n_params += param.numel()
+
+
+
     else:
         raise ValueError("Ensemble type not implemented or recognized")
 
     # Add the model name to the settings dictionary
     data["model_settings"]["model_name"] = \
-        (f"{ensemble_type}_ViT_{data['model_settings']['ViT_config']}_patch_{data['model_settings']['ViT_patch_size']}"
+        (f"{ensemble_type}_Bert"
          f"_members_{data['model_settings']['nr_members']}")
 
     # Print the model info and the number of trainable parameters
-    print("Ensemble model: {} ViT-{}-{} with {} members".format(ensemble_type, data["model_settings"]["ViT_config"],
-                                                                data["model_settings"]["ViT_patch_size"],
+    print("Ensemble model: {} Bert with {} members".format(ensemble_type,
                                                                 data["model_settings"]["nr_members"]))
     print(f"Number of trainable parameters: {n_params}")
 

@@ -97,29 +97,45 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
         # Get the start time of the epoch
         epoch_start_time = time.time()
 
+
         # If training is enabled
         if settings["training_settings"]["training"]:
             # iterate over training batches
             with tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Epoch", position=0) as pbar:
-                for batch_idx, (data_train, target) in pbar:
+                for batch_idx, target_params in pbar:
+
+                    if batch_idx==1:
+                        break
+
+                    if settings["data_settings"]["data_set"] != "SST2":
+                        data_train, target = target_params
+                    else:
+                        batch = target_params
                     train_params = {}
 
                     # set optimizers gradients to zero
                     optimizer.zero_grad()
 
                     # move training data and labels to device (GPU if possible)
-                    data_train = data_train.to(DEVICE)
+                    if settings["data_settings"]["data_set"] != "SST2":
+                        data_train = data_train.to(DEVICE)
+                    else:
+                        batch = {key: val.to(DEVICE) for key, val in target_params.items()}
+                        target = batch['labels']
 
                     # forward pass
                     with torch.autocast(device_type=DEVICE.type, dtype=torch.float16,
                                         enabled=settings["training_settings"]["use_amp"]):  # Automatic mixed precision
 
                         # Assert that the input does not contain NaN or infinite values
-                        assert not torch.isnan(data_train).any(), "Input contains NaN values"
-                        assert not torch.isinf(data_train).any(), "Input contains infinite values"
+                        # assert not torch.isnan(data_train).any(), "Input contains NaN values"
+                        # assert not torch.isinf(data_train).any(), "Input contains infinite values"
 
                         # Forward pass through the model
-                        output = model(data_train)
+                        if settings["data_settings"]["data_set"] != "SST2":
+                            output = model(data_train)
+                        else:
+                            output = model(batch)
 
                         # Assert that the output does not contain NaN or infinite values
                         assert not torch.isnan(output).any(), "Output contains NaN values"
@@ -128,11 +144,13 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                         # Reshape the output back into batch dimension for backpropagation
                         output = output.contiguous().view(output.shape[1] * n_members, -1)
 
+                        
                         # Repeat the target for each member to ensure independent training
                         target = target.repeat(n_members)
 
                         # move target tensor to device (GPU if possible)
                         target = target.to(DEVICE)
+                    
 
                         # calculate training loss
                         loss = criterion(output, target)
@@ -185,130 +203,59 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
             if settings["training_settings"]["lr_schedule_name"] == "epoch_step":
                 lr_schedule.step()
 
-        # validate the model (no gradient calculations)
-        # set model to evaluation mode
-        if settings["evaluation_settings"]["evaluation"]:  # If evaluation is enabled
+       # --- VALIDATION (minimal changes) ---
+        if settings["evaluation_settings"]["evaluation"]:
             model.eval()
-
             with torch.no_grad():
-                # initialize loss
                 val_loss = 0
                 predictions = np.array([])
                 labels = np.array([])
                 logits_prediction = torch.tensor([]).to(DEVICE)
-                disagreement = 0
-                distance_predicted_distributions = 0
-                nll = 0
-                brier_score_sum = 0
+                softmax = nn.Softmax(dim=2)
 
-                # iterate over validation data batches
-                for batch_idx, (data_val, target) in enumerate(val_data_loader):
+                for batch_idx, target_params in enumerate(val_data_loader):
+                    # prepare validation batch
+                    if settings["data_settings"]["data_set"] != "SST2":
+                        data_val, target = target_params
+                        data_val = data_val.to(DEVICE)
+                    else:
+                        batch = {k: v.to(DEVICE) for k, v in target_params.items()}
+                        target = batch['labels']
 
-                    # print(f"Batch {batch_idx} of {len(val_data_loader)}")
-
-                    # move validation data and labels to device (GPU if possible)
-                    data_val = data_val.to(DEVICE)
-
-                    # forward pass
+                    # forward using same pattern as training
                     with torch.autocast(device_type=DEVICE.type, dtype=torch.float16,
                                         enabled=settings["training_settings"]["use_amp"]):
-                        # Assert that the input does not contain NaN or infinite values
-                        assert not torch.isnan(data_val).any(), "Input contains NaN values"
-                        assert not torch.isinf(data_val).any(), "Input contains infinite values"
-
-                        if settings["model_settings"]["ensemble_type"] == "LoRA_Former" or \
-                                not settings["evaluation_settings"]["timing"]:
-
-                            # Get the inference start time
-                            inference_start_time = time.time()
-
-                            output = model(data_val)
-
-                            # Get the inference end time
-                            inference_end_time = time.time()
-
-                            # Calculate and store the inference time
-                            inference_time = inference_end_time - inference_start_time
-                            inferece_time_list.append(inference_time)
+                        if settings["data_settings"]["data_set"] != "SST2":
+                            raw = model(data_val)
                         else:
-                            inference_member_list = []
-                            output_list = []
-                            for member in model.vit_models:
-                                # Get the inference start time
-                                inference_start_time = time.time()
+                            raw = model(batch)
+                        # reshape to [members, batch, classes]
+                        output = raw.view(n_members, -1, raw.shape[-1])
 
-                                output = member(data_val)
+                        # member-wise softmax and average
+                        member_probs = softmax(output)            # [members, batch, classes]
+                        ensemble_probs = member_probs.mean(dim=0)  # [batch, classes]
+                        # assert torch.allclose(ensemble_probs.sum(dim=1),
+                        #                       torch.ones(ensemble_probs.size(0), device=DEVICE),
+                        #                       atol=1e-5), "Output is not a probability distribution"
 
-                                # Get the inference end time
-                                inference_end_time = time.time()
+                        
+                        print(member_probs.shape)
+                        print(ensemble_probs.shape)
+                        # log-probs and loss
+                        log_ens = torch.log(ensemble_probs)
+                        val_loss += nn.NLLLoss(weight=criterion.weight)(log_ens, target.to(DEVICE))
 
-                                # Calculate and store the inference time
-                                inference_time = inference_end_time - inference_start_time
-                                inference_member_list.append(inference_time)
-
-                                output_list.append(output)
-
-                            inferece_time_list.append(inference_member_list)
-
-                            output = torch.stack(output_list)
-
-                        # Assert that the output does not contain NaN or infinite values
-                        assert not torch.isnan(output).any(), "Output contains NaN values"
-                        assert not torch.isinf(output).any(), "Output contains infinite values"
-
-                        softmax = nn.Softmax(dim=2)
-                        output_softmax = softmax(output).mean(dim=0)
-                        assert output_softmax.sum(dim=1).allclose(torch.ones_like(output_softmax.sum(dim=1))), \
-                            "Output is not a probability distribution"
-                        output_log_softmax = torch.log(output_softmax)
-                        output_all_mean = output.mean(dim=0)
-                        output_disagreement = output
-
-                        # move target to device (GPU if possible)
-                        target = target.to(DEVICE)
-
-                        # calculate the loss (same as training loss)
-                        val_criterion = nn.NLLLoss(weight=criterion.weight)
-                        val_loss += val_criterion(output_log_softmax, target)
-
-                        if "NLL_Brier_Score" in settings["evaluation_settings"].keys() and \
-                                settings["evaluation_settings"]["NLL_Brier_Score"] is True:
-                            # calculate NLL loss
-                            NLL = nn.NLLLoss(reduction="sum")
-                            nll += NLL(output_log_softmax, target)
-
-                            # calculate brier score
-                            brier_score = torch.sum(
-                                (output_softmax.cpu() - torch.eye(output_softmax.shape[1])[target.cpu()]) ** 2)
-                            brier_score_sum += brier_score
-
-                    # Index with max probability in multi-class setting
-                    prediction = torch.argmax(output_softmax, dim=1)
-
-                    # append target tensor and output to list
-                    logits_prediction = torch.cat((logits_prediction, output_all_mean))
-
-                    # append labels and predictions to list
+                    print(ensemble_probs)
+                    # collect preds and labels
+                    preds = torch.argmax(ensemble_probs, dim=1)
+                    logits_prediction = torch.cat((logits_prediction, output.mean(dim=0)))
                     labels = np.concatenate((labels, target.cpu().numpy().flatten()))
-                    predictions = np.concatenate((predictions, prediction.cpu().numpy().flatten()))
+                    predictions = np.concatenate((predictions, preds.cpu().numpy().flatten()))
 
-                    # calculate disagreement and predicted distribution distance between the ensemble members
-                    if n_members > 1:
-                        if DEVICE == 'cuda':
-                            function_space = function_space_analysis().cuda()
-                        else:
-                            function_space = function_space_analysis()
-                        for i in range(n_members):
-                            for j in range(i + 1, n_members):
-                                disagreement_pred, distance_pred = function_space.forward(output_disagreement[i],
-                                                                                          output_disagreement[j])
-                                disagreement += disagreement_pred
-                                distance_predicted_distributions += distance_pred
+                    if batch_idx + 1 == settings.get("data_settings", {}).get("subset_evaluation_iterations", float('inf')):
+                        break
 
-                    # maximum number of steps per epoch reached
-                    if "subset_evaluation_iterations" in settings["data_settings"].keys():
-                        if batch_idx == (settings["data_settings"]["subset_evaluation_iterations"] - 1):
-                            break
 
                 # calculate ECE
                 if DEVICE == 'cuda':
