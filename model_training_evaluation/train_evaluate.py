@@ -72,6 +72,22 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
     if settings["evaluation_settings"]["evaluation"]:
         val_data_loader = settings['evaluation_settings']["evaluation_dataloader"]
 
+    # get first 1 batch of training data, assume sst2
+    print("sanity check")
+    for batch_idx, target_params in enumerate(train_dataloader):
+        if batch_idx == 0:
+            batch = {key: val.to(DEVICE) for key, val in target_params.items()}
+            target = batch['labels']
+            print("train target shape", target.shape)
+            print(target)
+    for batch_idx, target_params in enumerate(val_data_loader):
+        if batch_idx == 0:
+            batch = {key: val.to(DEVICE) for key, val in target_params.items()}
+            target = batch['labels']
+            print("train target shape", target.shape)
+            print(target)
+
+
     # number of training steps
     gradient_updates = 0
     finish_training = False
@@ -104,8 +120,8 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
             with tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Epoch", position=0) as pbar:
                 for batch_idx, target_params in pbar:
 
-                    if batch_idx==1:
-                        break
+                    #if batch_idx==1:
+                    #    break
 
                     if settings["data_settings"]["data_set"] != "SST2":
                         data_train, target = target_params
@@ -240,13 +256,13 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                         #                       atol=1e-5), "Output is not a probability distribution"
 
                         
-                        print(member_probs.shape)
-                        print(ensemble_probs.shape)
+                        #print(member_probs.shape)
+                        #print(ensemble_probs.shape)
                         # log-probs and loss
                         log_ens = torch.log(ensemble_probs)
                         val_loss += nn.NLLLoss(weight=criterion.weight)(log_ens, target.to(DEVICE))
 
-                    print(ensemble_probs)
+                    #print(ensemble_probs)
                     # collect preds and labels
                     preds = torch.argmax(ensemble_probs, dim=1)
                     logits_prediction = torch.cat((logits_prediction, output.mean(dim=0)))
@@ -280,8 +296,11 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
         precision = precision_score(labels, predictions, average='macro')
         recall = recall_score(labels, predictions, average='macro')
         if n_members > 1:
-            disagreement = (2 / (n_members * (n_members - 1))) * disagreement * (1 / len(val_data_loader.dataset))
-            distance_predicted_distributions = (2 / (n_members * (n_members - 1))) * distance_predicted_distributions
+            # dummy value
+            disagreement = 0
+            distance_predicted_distributions = 0
+            #disagreement = (2 / (n_members * (n_members - 1))) * disagreement * (1 / len(val_data_loader.dataset))
+            #distance_predicted_distributions = (2 / (n_members * (n_members - 1))) * distance_predicted_distributions
 
         if ("cross_validation" in settings["training_settings"].keys() and
                 settings["training_settings"]["cross_validation"]):
