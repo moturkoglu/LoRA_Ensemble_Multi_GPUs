@@ -120,7 +120,7 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
             with tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc="Epoch", position=0) as pbar:
                 for batch_idx, target_params in pbar:
 
-                    #if batch_idx==1:
+                    #if batch_idx==5:
                     #    break
 
                     if settings["data_settings"]["data_set"] != "SST2":
@@ -228,6 +228,10 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                 labels = np.array([])
                 logits_prediction = torch.tensor([]).to(DEVICE)
                 softmax = nn.Softmax(dim=2)
+                disagreement = 0
+                distance_predicted_distributions = 0
+                nll = 0
+                brier_score_sum = 0
 
                 for batch_idx, target_params in enumerate(val_data_loader):
                     # prepare validation batch
@@ -268,6 +272,15 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                     logits_prediction = torch.cat((logits_prediction, output.mean(dim=0)))
                     labels = np.concatenate((labels, target.cpu().numpy().flatten()))
                     predictions = np.concatenate((predictions, preds.cpu().numpy().flatten()))
+
+                    if ("NLL_Brier_Score" in settings["evaluation_settings"]
+                                and settings["evaluation_settings"]["NLL_Brier_Score"]):
+                        NLL = nn.NLLLoss(reduction="sum")
+                        nll += NLL(log_ens, target)
+                        brier_score = torch.sum(
+                            (ensemble_probs.cpu() - torch.eye(ensemble_probs.shape[1])[target.cpu()]) ** 2
+                        )
+                        brier_score_sum += brier_score
 
                     if batch_idx + 1 == settings.get("data_settings", {}).get("subset_evaluation_iterations", float('inf')):
                         break
