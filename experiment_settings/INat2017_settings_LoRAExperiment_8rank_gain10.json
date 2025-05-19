@@ -4,9 +4,9 @@
     "ViT_patch_size": 32
   },
   "LoRA_settings": {
-    "rank": 64,
+    "rank": 8,
     "weight_init": "xavier_uniform",
-    "xavier_gain": 1,
+    "xavier_gain": 10,
     "chunk_size": 1   
   },
   "data_settings": {
@@ -27,17 +27,17 @@
     "training": true,
     "random_seed": 42,
     "max_steps": 289600,
-    "steps_lr_warmup": 2500,
+    "steps_lr_warmup": 0,
     "loss": "cross_entropy",
     "class_weights": "uniform",
     "optimizer": "SGD",
-    "learning_rate": 0.1,   
+    "learning_rate": 0.03,   
     "lr_decay": 0.94,
     "epoch_decay": 4,
     "SGD_momentum": 0.9,
     "SGD_nesterov": false,
     "Adam_betas": [0.9, 0.999],
-    "weight_decay": 0.000001,
+    "weight_decay": 0.0,
     "lr_schedule": "cosine",
     "gradient_clip": 1.0,
     "training_batch_size": 32,

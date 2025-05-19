@@ -44,7 +44,7 @@ __credits__ = ["Michelle Halbheer", "Dominik Mühlematter"]
 __version__ = "0.0.1"
 __status__ = "Development"
 
-cluster = True
+cluster = False
 #iNat2017_dir = "F:/iNat2017/2017/"
 #iNat2017_dir = "/cluster/scratch/dmuehlema/iNat2017/"
 if cluster:

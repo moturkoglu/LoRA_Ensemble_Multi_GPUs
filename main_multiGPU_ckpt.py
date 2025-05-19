@@ -75,3 +75,4 @@ if __name__ == "__main__":
         # python main.py ESC50_settingsPaperLoRA_experiment1.json AST_Former 1
         # python main.py CIFAR100_settings_experiment12_copy.json LoRA_Former 2
         # python main.py ESC50_settings_MCDropout1.json ASTMCDropout 2
+        # python -m torch.distributed.run --nproc_per_node=1 main_multiGPU_ckpt.py INat2017_settings_McDropoutFinal1.json MCDropout 4 C:\Users\domin\Code_Projects\MSc_Geomatics\Semester_thesis_2\LoRA_Ensemble_Multi_GPUs\storage\models\Deep_Ensemble_ViT_base_32_1_members_INat2017_settings_explicitFinal1_checkpoint_epoch_63

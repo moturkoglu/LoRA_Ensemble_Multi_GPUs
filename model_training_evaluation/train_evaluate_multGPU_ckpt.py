@@ -37,7 +37,12 @@ def get_safe_state_dict(model: torch.nn.Module) -> dict:
     return model.module.state_dict() if hasattr(model, "module") else model.state_dict()
 
 ### DDP INITIALIZATION (only once at the start) ###
-dist.init_process_group(backend="nccl")
+operating_system = "linux"
+operating_system = "windows"
+if operating_system == "linux":
+    dist.init_process_group(backend="nccl")
+elif operating_system == "windows":
+    dist.init_process_group(backend="gloo")  
 local_rank = dist.get_rank()
 world_size = dist.get_world_size()
 torch.cuda.set_device(local_rank)
@@ -226,6 +231,7 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                 brier_score_sum = 0
 
                 for batch_idx, (data_val, target) in enumerate(val_data_loader):
+                    print(batch_idx, "of", len(val_data_loader))
                     data_val = data_val.to(local_rank, non_blocking=True)
                     with torch.autocast(device_type="cuda", dtype=torch.float16,
                                         enabled=settings["training_settings"]["use_amp"]):
