@@ -177,3 +177,73 @@ class LoRABert(nn.Module):
         for name, tensor in state_dict.items():
             if name in own:
                 own[name].data.copy_(tensor)
+
+
+class ExplicitBert(nn.Module):
+    """
+    A class for a vision transformer ensemble
+    """
+
+    def __init__(
+            self,
+            n_members: int,
+            n_classes: int,
+            model_name: str = 'bert-base-uncased',
+    ):
+        super().__init__()
+        self.n_members = n_members
+        self.n_classes = n_classes
+        self.model_name = model_name
+        self.bert_models = nn.ModuleList([
+            BertModel(model_name, self.n_classes) 
+            for _ in range(self.n_members)
+        ])
+
+    def forward(self, *args, **inputs) -> Tensor:
+        if args:
+            if len(args) == 1 and isinstance(args[0], dict):
+                inputs = args[0]
+            else:
+                raise ValueError("LoRABert.forward: expected single dict arg or kwargs")
+        inputs.pop("labels", None)
+        out = [model.model(**inputs).logits for model in self.bert_models]
+        out = torch.stack(out)
+        return out
+
+    def set_params(self, model_state_list: List[Tensor]) -> None:
+        """
+        Set the parameters of the ensemble members
+
+        Parameters
+        ----------
+        model_state_list : List[Tensor]
+            The parameters to set
+        """
+
+        param_index = 0
+        for member in self.bert_models:
+            length_model_in_list = int(len(model_state_list) / len(self.bert_models))
+            model_params = model_state_list[param_index:param_index + length_model_in_list]
+            count = 0
+            for p in member.parameters():
+                p.data = model_params[count]
+                count += 1
+            param_index += length_model_in_list
+
+        #raise NotImplementedError("This function is not implemented yet")
+
+        #model_length = len(model_state_list) // self.n_members
+        #for i, model in enumerate(self.vit_models):
+        #    for j, param in enumerate(model.parameters()):
+        #        param = model_state_list[i * model_length + j]
+        #        pass
+
+
+
+
+
+
+# python -m torch.distributed.run --nproc_per_node=1 main.py SST2_settings_LoRA1.json LoRABert 2
+# python main.py SST2_settings_LoRA1.json LoRABert 2
+# python main_multiGPU_ckpt.py $1 $2 $3 $4
+# python main.py SST2_settings_explicit1.json ExplicitBert 2

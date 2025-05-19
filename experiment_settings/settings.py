@@ -36,6 +36,7 @@ from models.lora import Init_Weight
 from models.vision_transformer import VisionTransformerEnsemble, Init_Head
 from models.BERT import LoRABert
 from models.BERT import BertModel
+from models.BERT import ExplicitBert
 from transformers import BertForSequenceClassification
 
 # from models.BERT import BertEnsemble
@@ -818,8 +819,28 @@ def get_model(data: dict, ensemble_type: str) -> torch.nn.Module:
 
         print(ensemble_model)
 
-    elif ensemble_type == "BertEnsemble":
-        pass
+    elif ensemble_type == "ExplicitBert":
+        ensemble_model = ExplicitBert(
+            n_members=data["model_settings"]["nr_members"],
+            n_classes=data["data_settings"]["num_classes"],
+            model_name='bert-base-uncased',
+            ).to(DEVICE)
+        
+        ensemble_params = []
+        for model in ensemble_model.bert_models:
+            ensemble_params.extend(model.parameters())
+
+        # Pass the model params
+        data["model_settings"]["model_params"] = ensemble_params
+
+        # Add parameters to the optimizer
+        data["training_settings"]["optimizer"].param_groups[0]["params"] = ensemble_params
+
+        # Calculate number of parameters
+        n_params = 0
+        for param in ensemble_params:
+            n_params += param.numel()
+
 
     elif ensemble_type == "LoRABert":
         init_settings = {}
