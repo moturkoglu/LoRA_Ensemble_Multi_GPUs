@@ -1,7 +1,7 @@
-from datasets import load_dataset
+from datasets import load_dataset, DownloadMode
 from transformers import AutoTokenizer, BertTokenizer
 
-sst2_dataset = load_dataset('glue', 'sst2')
+sst2_dataset = load_dataset('glue', 'sst2', download_mode="reuse_dataset_if_exists")
 
 # tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
