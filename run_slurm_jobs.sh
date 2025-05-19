@@ -78,13 +78,17 @@ for i in "${experiments[@]}"; do
   # Set time and gpu memory based on number of members
   for j in "${num_members[@]}"; do
     if [ "$j" == 1 ]; then
-      time=300
+      #time=300
+      #gpu_mem=20
+      time=2
       gpu_mem=20
     elif [ "$j" == 2 ]; then
       time=10
       gpu_mem=20
     elif [ "$j" == 4 ]; then
-      time=300
+      #time=300
+      #gpu_mem=20
+      time=2
       gpu_mem=20
     elif [ "$j" == 8 ]; then
       time=336
@@ -108,7 +112,7 @@ for i in "${experiments[@]}"; do
     fi
     job_name="${type:0:1}""m"$j"s"$i
 
-    slurm_call="sbatch -J "$job_name" --time=1-"$time" --mem-per-cpu=32g --gpus=4 --gres=gpumem:"$gpu_mem"g --output=$output $wrap"
+    slurm_call="sbatch -J "$job_name" --time=1-"$time" --mem-per-cpu=32g --gpus=1 --gres=gpumem:"$gpu_mem"g --output=$output $wrap"
 
     # Run job
     echo "Running job with settings $settings$i and type $type with $j members"
