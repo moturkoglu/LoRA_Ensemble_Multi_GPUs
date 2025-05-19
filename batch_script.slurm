@@ -2,7 +2,7 @@
 
 module load stack/2024-06
 module load gcc/12.2.0
-source source /cluster/home/dmuehlema/LoRA-ViT-Ensemble/venv/bin/activate
+source /cluster/home/dmuehlema/LoRA-ViT-Ensemble/venv/bin/activate
 module load python_cuda/3.11.6
 
 #python main.py SST2_settings_LoRA1.json LoRABert 2
