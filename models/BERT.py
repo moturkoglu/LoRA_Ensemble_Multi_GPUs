@@ -240,6 +240,143 @@ class ExplicitBert(nn.Module):
 
 
 
+class MCDropoutBert(nn.Module):
+    def __init__(
+            self,
+            n_members: int,
+            n_classes: int,
+            p_drop: float,
+            model_name: str = 'bert-base-uncased',
+            batch_mode: BatchMode = BatchMode.DEFAULT,
+            init_head: Init_Head = Init_Head.DEFAULT,
+            head_settings: dict = None
+    ):
+        super().__init__()
+        self.n_members = n_members
+        self.n_classes = n_classes
+        self.p_drop = p_drop
+        self.model_name = model_name
+        self.batch_mode = batch_mode
+
+        self.bert_model = BertModel(model_name, self.n_classes)
+
+        # ---- config & freeze ----
+        cfg         = self.bert_model.model.config
+        hidden_size = cfg.hidden_size
+        num_labels  = cfg.num_labels
+
+        # ---- replace classification head ----
+        ensemble_head = EnsembleHead(
+            hidden_size, num_labels, n_members, init_head, head_settings
+        )
+        self.bert_model.model.classifier = ensemble_head
+
+        print(self.bert_model)
+
+        self._enable_dropkey()
+
+        # self._set_p_drop()
+
+    def _set_p_drop(self):
+        """
+        Sets dropout probabilities in MLP layers.
+        """
+        dropouts = [m for m in self.bert_model.modules() if isinstance(m, torch.nn.Dropout)]
+        for dropout in dropouts:
+            dropout.p = self.p_drop
+
+    def _enable_dropkey(self):
+        for layer in self.bert_model.model.bert.encoder.layer:
+            sa = layer.attention.self
+            n_heads = sa.num_attention_heads
+            orig_forward = sa.forward
+
+            def make_wrapper(orig_forward, n_heads):
+                def wrapper(hidden_states,
+                            attention_mask=None,
+                            head_mask=None,
+                            encoder_hidden_states=None,
+                            encoder_attention_mask=None,
+                            past_key_value=None,
+                            output_attentions=False):
+
+                    bsz, seq_len, _ = hidden_states.size()
+                    drop_mask = torch.bernoulli(
+                        torch.full(
+                            (bsz, n_heads, 1, seq_len),
+                            self.p_drop,
+                            device=hidden_states.device)
+                    ).bool()
+
+                    if attention_mask is None:
+                        combined_mask = drop_mask
+                    else:
+                        if attention_mask.dtype != torch.bool:
+                            attention_mask = attention_mask != 0
+                        combined_mask = attention_mask | drop_mask
+
+                    return orig_forward(
+                        hidden_states,
+                        combined_mask,
+                        head_mask,
+                        encoder_hidden_states,
+                        encoder_attention_mask,
+                        past_key_value,
+                        output_attentions,
+                    )
+                return wrapper
+
+            sa.forward = make_wrapper(orig_forward, n_heads)
+
+    def forward(self, *args, **inputs) -> Tensor:
+        if args:
+            if len(args) == 1 and isinstance(args[0], dict):
+                inputs = args[0]
+            else:
+                raise ValueError("LoRABert.forward: expected single dict arg or kwargs")
+
+        # keep your pop
+        inputs.pop("labels", None)
+
+        # optional repeat
+        if self.batch_mode == BatchMode.REPEAT:
+            inputs = {
+                k: v.repeat_interleave(self.n_members, dim=0)
+                for k,v in inputs.items()
+            }
+        outputs = self.bert_model.model(**inputs)
+        logits = outputs.logits  # [batch*n_members, num_labels]
+        # reshape → [n_members, batch, num_labels]
+        batch = logits.size(0) // self.n_members
+        return logits.view(batch, self.n_members, -1).permute(1, 0, 2)
+
+    def gather_params(self):
+        """
+        Gather the parameters of the model.
+        This dict needs to be passed to the optimizer to train the model.
+
+        Returns
+        -------
+        params : Dict[str, Tensor]
+            The parameters of the model
+        """
+
+        return dict(self.bert_model.named_parameters())
+
+    def set_params(self, model_state_dict: Dict[str, Tensor]):
+        """
+        Set the parameters of the model based on a model state dict
+
+        Parameters
+        ----------
+        model_state_dict : Dict[str, Tensor]
+            The model state dict to set the parameters from
+        """
+
+        for name, param in model_state_dict.items():
+            if name in self.bert_model.state_dict():
+                # If the parameter exists in the second model, load it
+                self.bert_model.state_dict()[name].copy_(param)
 
 
 

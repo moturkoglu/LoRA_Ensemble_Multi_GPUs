@@ -88,7 +88,7 @@ for i in "${experiments[@]}"; do
     elif [ "$j" == 4 ]; then
       #time=300
       #gpu_mem=20
-      time=3
+      time=2
       gpu_mem=20
     elif [ "$j" == 8 ]; then
       #time=336

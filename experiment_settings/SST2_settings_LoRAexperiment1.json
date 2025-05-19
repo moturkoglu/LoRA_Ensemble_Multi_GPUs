@@ -11,15 +11,15 @@
   "data_settings": {
     "data_set": "SST2",
     "num_classes": 2,
-    "shuffle": false,
+    "shuffle": true,
     "num_workers": 4,
     "tensorboard": true
   },
   "training_settings": {
-    "max_epochs": 5,
+    "max_epochs": 3,
     "training": true,
     "random_seed": 42,
-    "max_steps": 25008,
+    "max_steps": 12630,
     "steps_lr_warmup": 0,
     "loss": "cross_entropy",
     "class_weights": "uniform",

@@ -37,6 +37,7 @@ from models.vision_transformer import VisionTransformerEnsemble, Init_Head
 from models.BERT import LoRABert
 from models.BERT import BertModel
 from models.BERT import ExplicitBert
+from models.BERT import MCDropoutBert
 from transformers import BertForSequenceClassification
 
 # from models.BERT import BertEnsemble
@@ -839,6 +840,50 @@ def get_model(data: dict, ensemble_type: str) -> torch.nn.Module:
         # Calculate number of parameters
         n_params = 0
         for param in ensemble_params:
+            n_params += param.numel()
+
+    
+    elif ensemble_type == "MCDropoutBert":
+        # Initialize dict for head weight initialization settings
+        head_settings = {}
+
+        # Set the initialization method for the head
+        if "head_init" not in data["model_settings"]:
+            init_head = Init_Head.DEFAULT
+            head_settings = None
+        elif data["model_settings"]["head_init"] == "gaussian":
+            init_head = Init_Head.NORMAL
+            head_settings["std"] = data["model_settings"]["gaussian_std"]
+            head_settings["mean"] = data["model_settings"]["gaussian_mean"]
+        elif data["model_settings"]["head_init"] == "kaiming":
+            init_head = Init_Head.KAIMING_UNIFORM
+            head_settings["a_squared"] = data["model_settings"]["kaiming_a_squared"]
+        elif data["model_settings"]["head_init"] == "xavier_uniform":
+            init_head = Init_Head.XAVIER_UNIFORM
+            head_settings["gain"] = data["model_settings"]["xavier_gain"]
+        else:
+            init_head = Init_Head.DEFAULT
+            head_settings = None
+        ensemble_model = MCDropoutBert(
+            n_members=data["model_settings"]["nr_members"],
+            n_classes=data["data_settings"]["num_classes"],
+            p_drop=data["MCDropout_settings"]["p_drop"],
+            model_name='bert-base-uncased',
+            init_head=init_head,
+            head_settings=head_settings
+        ).to(DEVICE)
+        # Gather the model parameters that need training
+        ensemble_params = ensemble_model.gather_params()
+
+        # Pass the model params
+        data["model_settings"]["model_params"] = ensemble_params
+
+        # Add parameters to the optimizer
+        data["training_settings"]["optimizer"].param_groups[0]["params"] = ensemble_params.values()
+
+        # Calculate number of parameters
+        n_params = 0
+        for param in ensemble_params.values():
             n_params += param.numel()
 
 
