@@ -14,7 +14,7 @@
     "tensorboard": true
   },
   "training_settings": {
-    "max_epochs": 5,
+    "max_epochs": 3,
     "training": true,
     "random_seed": 42,
     "max_steps": 12630,
