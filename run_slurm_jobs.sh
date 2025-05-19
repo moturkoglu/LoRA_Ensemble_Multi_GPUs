@@ -91,8 +91,10 @@ for i in "${experiments[@]}"; do
       time=2
       gpu_mem=20
     elif [ "$j" == 8 ]; then
-      time=336
-      gpu_mem=60
+      #time=336
+      #gpu_mem=60
+      time=2
+      gpu_mem=20
     elif [ "$j" == 16 ]; then
       # Deep Ensemble needs more memory and time
       if [ "$type" == "Deep_Ensemble" ]; then
