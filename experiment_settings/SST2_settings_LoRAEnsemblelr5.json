@@ -6,7 +6,7 @@
   "LoRA_settings": {
     "rank": 64,
     "weight_init": "xavier_uniform",
-    "xavier_gain": 8
+    "xavier_gain": 12
   },
   "data_settings": {
     "data_set": "SST2",
