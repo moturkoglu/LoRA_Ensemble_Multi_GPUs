@@ -1,0 +1,47 @@
+{ 
+  "model_settings": {
+    "ViT_config":  "base",
+    "ViT_patch_size": 32
+  },
+  "LoRA_settings": {
+    "rank": 128,
+    "weight_init": "xavier_uniform",
+    "xavier_gain": 2
+  },
+  "data_settings": {
+    "data_set": "SST2",
+    "num_classes": 2,
+    "shuffle": true,
+    "num_workers": 4,
+    "tensorboard": true
+  },
+  "training_settings": {
+    "max_epochs": 3,
+    "training": true,
+    "random_seed": 42,
+    "max_steps": 12630,
+    "steps_lr_warmup": 0,
+    "loss": "cross_entropy",
+    "class_weights": "uniform",
+    "optimizer": "AdamW",
+    "learning_rate": 2e-5,
+    "SGD_momentum": 0.9,
+    "SGD_nesterov": false,
+    "Adam_betas": [0.9, 0.999],
+    "weight_decay": 0.0,
+    "lr_schedule": "linear",
+    "gradient_clip": 1.0,
+    "training_batch_size": 16,
+    "training_augmentation": ["no_standardize"],
+    "early_stopping": false,
+    "use_amp": false
+  },
+  "evaluation_settings": {
+    "evaluation": true,
+    "evaluation_batch_size": 16,
+    "evalution_augmentation": ["no_standardize"],
+    "NLL_Brier_Score": true
+  }
+}
+    
+
