@@ -16,15 +16,15 @@
     "tensorboard": true
   },
   "training_settings": {
-    "max_epochs": 4,
+    "max_epochs": 3,
     "training": true,
     "random_seed": 1206,
-    "max_steps": 16840,
+    "max_steps": 12630,
     "steps_lr_warmup": 0,
     "loss": "cross_entropy",
     "class_weights": "uniform",
     "optimizer": "AdamW",
-    "learning_rate": 3e-5,
+    "learning_rate": 6e-5,
     "SGD_momentum": 0.9,
     "SGD_nesterov": false,
     "Adam_betas": [0.9, 0.999],
