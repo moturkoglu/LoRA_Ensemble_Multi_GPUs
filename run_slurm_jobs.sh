@@ -93,7 +93,7 @@ for i in "${experiments[@]}"; do
     elif [ "$j" == 8 ]; then
       #time=336
       #gpu_mem=60
-      time=2
+      time=5
       gpu_mem=20
     elif [ "$j" == 16 ]; then
       # Deep Ensemble needs more memory and time
