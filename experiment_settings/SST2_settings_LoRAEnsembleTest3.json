@@ -24,7 +24,7 @@
     "loss": "cross_entropy",
     "class_weights": "uniform",
     "optimizer": "AdamW",
-    "learning_rate": 6e-5,
+    "learning_rate": 4e-5,
     "SGD_momentum": 0.9,
     "SGD_nesterov": false,
     "Adam_betas": [0.9, 0.999],
