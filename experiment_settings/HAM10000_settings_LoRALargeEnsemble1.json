@@ -41,7 +41,7 @@
     "weight_decay": 0.0,
     "lr_schedule": "cosine",
     "gradient_clip": 1.0,
-    "training_batch_size": 32,
+    "training_batch_size": 8,
     "training_augmentation": ["flip", "rotate", "standardize"],
     "early_stopping": false,
     "use_amp": false
