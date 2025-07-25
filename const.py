@@ -16,7 +16,7 @@ __status__ = "Development"
 
 
 ### FLAGS ###
-cluster = False
+cluster = True
 
 ### DIRECTORIES ###
 ROOT_DIR = Path(__file__).resolve().parents[0]  # Root directory of the project
