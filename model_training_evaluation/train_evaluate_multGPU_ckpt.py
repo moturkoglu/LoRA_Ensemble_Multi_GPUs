@@ -427,7 +427,7 @@ def train_evaluate_ensemble(settings: dict, batch_mode: BatchMode = BatchMode.DE
                 }
                 # if torch.cuda.is_available():
                 #     checkpoint["cuda_rng_state"] = [state.clone().detach() for state in torch.cuda.get_rng_state_all()]
-                torch.save(checkpoint, checkpoint_path)
+                #torch.save(checkpoint, checkpoint_path)
                 print(f"Checkpoint saved at epoch {epoch} to {checkpoint_path}")
             # ----- END MODIFIED -----
         else:
