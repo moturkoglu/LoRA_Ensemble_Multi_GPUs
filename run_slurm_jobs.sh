@@ -105,7 +105,7 @@ for i in "${experiments[@]}"; do
         gpu_mem=60
       fi
     elif [ "$j" == 32 ]; then
-      time=24
+      time=35
       gpu_mem=20
     fi
 
